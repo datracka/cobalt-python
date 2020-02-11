@@ -1,0 +1,6 @@
+- Add DB and migration support
+- Create schema
+- Run job to request Github API repos
+- Save in DB
+- Run job to request Github API users
+- Save in DB

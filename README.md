@@ -11,12 +11,23 @@
 - in one tab run redis server `"$ redis-server"`
 - in another tab `"$ python worker"` to run our worker runner
 - in a third tab run the app `"$ FLASK_RUN_PORT=4567 FLASK_ENV=development FLASK_APP=app.py flask run"`
+- open `"http://localhost:4567"` and login in
+- If all works properly a new page will be rendered. `Check repo URL` link checks URL works properly. `get repositories` start job to retrieve up to 5000 repos and save them in DB. 
 
-### Next...
-
-1 - **authoriziation step**: open browser and paste `http;//localhost:4567/api/login` a github oauth page should popup asking to grant access you will be redirected to `/api/callback`
-
-2 - **run job**: open another browser tab and run `http://localhost:4567/hello-job` a message `job should run now` appears. 
 
 Check worker console! a message `"hello job!xxxxxxxx"` should shows up where xxxxx is the code to be used for authenticated request to Github Api
+
+## Documentation
+
+https://realpython.com/flask-by-example-implementing-a-redis-task-queue/
+https://flask-rq2.readthedocs.io/en/latest/
+https://help.github.com/en/github/searching-for-information-on-github/searching-on-github
+
+
+# Search Example 1
+
+"https://api.github.com/search/repositories?q=php+laravel+in:readme+pushed:>2020-02-10+created:<2020-02-11+language:php+topic:laravel"
+
+
+
 

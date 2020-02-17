@@ -1,5 +1,9 @@
 # Cobalt
 
+# Requeriments: 
+
+https://docs.google.com/document/d/1GwNZ4tYGZ7vQrjilLFj2I7rlG0fbWgahn7N9m7REcNU/edit?usp=sharing
+
 ## dependencies
 
 - Redis > 3.0.0 `"$ brew install redis"`

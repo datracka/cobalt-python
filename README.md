@@ -9,7 +9,8 @@
 
 - open console 
 - in one tab run redis server `"$ redis-server"`
-- in another tab `"$ python worker"` to run our worker runner
+- open a virtualenv shell session by running `"$ pipenv shell"`
+- in another tab `"$ python worker.py"` to run our worker runner
 - in a third tab run the app `"$ FLASK_RUN_PORT=4567 FLASK_ENV=development FLASK_APP=app.py flask run"`
 - open `"http://localhost:4567"` and login in
 - If all works properly a new page will be rendered. `Check repo URL` link checks URL works properly. `get repositories` start job to retrieve up to 5000 repos and save them in DB. 

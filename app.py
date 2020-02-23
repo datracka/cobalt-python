@@ -4,6 +4,7 @@ from flask_rq2 import RQ
 from flask_github import GitHub
 from datetime import date
 import requests
+import json
 from datetime import date, timedelta
 
 
@@ -54,8 +55,12 @@ def get_repositories_job(oauth_token):
 
 @app.route('/api/get_repositories')
 def get_repositories():
-    job = get_repositories_job.queue(session['oauth_token'])
-    return 'running...'
+    try:
+        access_token = request.args.get('access_token')
+        job = get_repositories_job.queue(access_token)
+    except Exception as e:
+         return f'Record not found {e}', 400
+    return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
     
 @app.route('/')
 def index():
@@ -100,4 +105,8 @@ def authorized(oauth_token):
         session['oauth_token'] = oauth_token
     else:
         print('something went wrong')
-    return render_template('auth.html', oauth_token=oauth_token)
+    return session['oauth_token']
+
+@app.route('/auth')
+def template_auth():
+    return render_template('auth.html', oauth_token=session['oauth_token'])

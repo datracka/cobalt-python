@@ -32,17 +32,35 @@ github = GitHub(app)
 rq = RQ(app) 
 
 ## Models ####
-class User(db.Model):
-    __tablename__ = 'users'
+class UserRepo(db.Model):
+    __tablename__ = 'user_repos'
     id = db.Column(db.Integer, primary_key=True)
-    payload = db.Column(JSON, nullable=False)
-    searches = db.relationship('Search', backref='user', lazy=True)
+    repo = db.Column(JSON, nullable=False)
+    searches = db.relationship('Search', backref='user_repos', lazy=True)
+
+    def __init__(self, payload):
+        self.payload = payload
+
+    def __repr__(self):
+        return '<User %r>' % self.payload
+
 
 class Search(db.Model):
     __tablename__ = 'searches'
     id = db.Column(db.Integer, primary_key=True)
+    search = db.Column(db.String, unique=False, nullable=False)
+
+    def __init__(self, search):
+        self.search = search
+
+    def __repr__(self):
+        return '<Search %r>' % self.search
 
 ## Jobs definition ###
+
+def save_repos_in_db(items, search):
+    for item in items:
+        user_repo = UserRepo(repo=item, search=search)
 
 @rq.job
 def simple_get_users(oauth_token, search_query):
@@ -50,13 +68,16 @@ def simple_get_users(oauth_token, search_query):
     final_url = f'{USERS_URL}?q={search_query}&per_page=100'
     res=requests.get(url=f'{final_url}&page=1',headers=headers)
     # print('status', headers, final_url, res.json())
+    search = Search(search=search_query)
+    db.session.add(search)
     if 'items' in res.json():
-        total_repos = res.json()['items']
+        save_repos_in_db(res.json()['items'], search)
         while 'next' in res.links.keys():
             res=requests.get(res.links['next']['url'], headers=headers)
             print('status', res.status_code, res.headers)
-            total_repos += res.json()['items']
-        print('total', total_repos)
+            # total_repos += res.json()['items']
+            save_repos_in_db(res.json()['items'], search)
+    db.session.commit()
 
 
 ## Routes and auth management #### 

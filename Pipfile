@@ -14,6 +14,7 @@ rq = "*"
 github-flask = "*"
 python-dotenv = "*"
 requests = "*"
+rq-scheduler = "*"
 
 [requires]
 python_version = "3.7"

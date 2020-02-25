@@ -16,13 +16,48 @@ app.config['GITHUB_CLIENT_SECRET'] = os.environ.get("GITHUB_CLIENT_SECRET")
 github = GitHub(app)
 rq = RQ(app) 
 repos_url = "https://api.github.com/search/repositories"
+users_url = "https://api.github.com/search/users"
 
 @rq.job
 def my_hello_job(oauth_token):
     return 'job running....'
 
 @rq.job
-def get_repositories_job(oauth_token):
+def simple_get_repos(oauth_token, search_query):
+    total_repos = []
+    number_of_request = 0
+    headers = {'Authorization': f'token {oauth_token}', 'User-Agent': 'digitalents-cobalt'}
+    query = f'{search_query}'
+    url = f'{repos_url}?{query}'
+    res = requests.get(url=f'{url}&page=1',headers=headers)
+    repos_per_day = res.json()['items']
+    while 'next' in res.links.keys():
+        res = requests.get(res.links['next']['url'], headers=headers)
+        number_of_request = number_of_request + 1
+        # print('status', res.status_code, res.headers)
+        repos = res.json()['items']
+        repos_per_day += repos
+    print(repos_per_day)
+    ## set it DB or wait for results! 
+    return repos_per_day
+
+@rq.job
+def simple_get_users(oauth_token, search_query):
+    headers = {'Authorization': f'Bearer {oauth_token}', 'User-Agent': 'digitalents-cobalt'}
+    final_url = f'{users_url}?q={search_query}&per_page=100'
+    res=requests.get(url=f'{final_url}&page=1',headers=headers)
+    # print('status', headers, final_url, res.json())
+    if 'items' in res.json():
+        total_repos = res.json()['items']
+        while 'next' in res.links.keys():
+            res=requests.get(res.links['next']['url'], headers=headers)
+            print('status', res.status_code, res.headers)
+            total_repos += res.json()['items']
+        print('total', total_repos)
+
+## @depreacted
+@rq.job
+def get_repositories_job(oauth_token, search_query):
     delta = 1
     total_repos = []
     number_of_request = 0
@@ -31,11 +66,10 @@ def get_repositories_job(oauth_token):
         # define new query by timerange
         since = date.today() - timedelta(days=delta)
         until = date.today() - timedelta(days=delta-1)
-        query = f'q=php+laravel+in:readme+pushed:>{since}+created:<{until}+language:php+topic:laravel'
-        url = f'{repos_url}?{query}'
-        print(url)
+        query = f'{search_query}+pushed:>{since}+created:<{until}'
+        final_url = f'{repos_url}?{query}'
 
-        res=requests.get(url=f'{url}&page=1',headers=headers)
+        res=requests.get(url=f'{final_url}&page=1',headers=headers)
         number_of_request = number_of_request + 1
         print('status', res.status_code, res.headers)
         json_response = res.json()
@@ -53,11 +87,29 @@ def get_repositories_job(oauth_token):
     print('total', len(total_repos), number_of_request)
     
 
-@app.route('/api/get_repositories')
+@app.route('/api/start_users_job')
+def get_users():
+    try:
+        access_token = request.args.get('access_token')
+        search_query = request.args.get('search_query')
+        job = simple_get_users.queue(access_token, search_query)
+    except Exception as e:
+         return f'Record not found {e}', 400
+    return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+
+@app.route('/api/start_repositories_job')
 def get_repositories():
     try:
         access_token = request.args.get('access_token')
-        job = get_repositories_job.queue(access_token)
+        search_query = request.args.get('search_query')
+        delta = 1
+        # get last 30 days repos
+        while delta < 30:
+            since = date.today()  - timedelta(days=delta)
+            until = date.today()  - timedelta(days=delta-1)
+            query = f'{search_query}+pushed:>{since}+created:<{until}'
+            # schedule a job each minute
+            job = simple_get_repos.schedule(timedelta(minutes=1), access_token, query)
     except Exception as e:
          return f'Record not found {e}', 400
     return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
